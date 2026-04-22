@@ -1,24 +1,52 @@
 import React, { useState } from 'react';
-import { Shield, Lock, Key, Server, Building } from 'lucide-react';
+import { Shield, Lock, Key, Server, Building, AlertTriangle } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 export default function Auth({ onLogin }) {
-  const [email, setEmail] = useState('admin@grandhyatt.mumbai.com');
-  const [password, setPassword] = useState('••••••••••••');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [tenant, setTenant] = useState('GDG_HACKATHON_DEMO');
 
-  const handleAuth = (e) => {
+  const MOCK_CREDENTIALS = {
+    email: 'admin@sentinel.x',
+    password: 'tactical-alpha-01'
+  };
+
+  const handleAuth = async (e) => {
     e.preventDefault();
     setLoading(true);
-    // Simulate Supabase Auth Verification Delay
-    setTimeout(() => {
+    setError(null);
+
+    // Tactical Bypass for Demo Purposes
+    if (email === MOCK_CREDENTIALS.email && password === MOCK_CREDENTIALS.password) {
+      setTimeout(() => {
+        onLogin({
+          id: 'demo-user-123',
+          email: MOCK_CREDENTIALS.email,
+          tenant_id: tenant,
+          role: 'tactical_lead'
+        });
+      }, 1000);
+      return;
+    }
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      setError(error.message);
       setLoading(false);
+    } else {
       onLogin({
-        email,
+        ...data.user,
         tenant_id: tenant,
-        role: 'tenant_admin'
+        role: 'operator'
       });
-    }, 1200);
+    }
   };
 
   return (
@@ -28,7 +56,6 @@ export default function Auth({ onLogin }) {
       background: '#05070a',
       fontFamily: 'Inter, sans-serif'
     }}>
-      {/* Background Ambience */}
       <div style={{
         position: 'absolute', inset: 0,
         background: 'radial-gradient(circle at top, rgba(0,210,255,0.05) 0%, transparent 50%), radial-gradient(circle at bottom, rgba(255,45,85,0.03) 0%, transparent 50%)',
@@ -56,18 +83,28 @@ export default function Auth({ onLogin }) {
           }}>
             <Shield color="#00d2ff" size={32} />
           </div>
-          <h1 style={{ fontSize: '24px', fontWeight: '800', color: '#fff', letterSpacing: '0.1em', margin: 0 }} className="font-orbitron">
+          <h1 style={{ fontSize: '24px', fontWeight: '800', color: '#fff', letterSpacing: '0.1em', margin: 0 }}>
             SENTINEL-X
           </h1>
-          <div style={{ fontSize: '10px', color: '#00d2ff', letterSpacing: '0.2em', marginTop: '4px' }} className="font-mono">
-            SECURE_SAAS_AUTH_GATEWAY
+          <div style={{ fontSize: '10px', color: '#00d2ff', letterSpacing: '0.2em', marginTop: '4px' }}>
+            TACTICAL_AUTH_GATEWAY
           </div>
         </div>
 
+        {error && (
+          <div style={{ 
+            display: 'flex', gap: '10px', alignItems: 'center', 
+            background: 'rgba(255,59,59,0.1)', border: '1px solid rgba(255,59,59,0.3)', 
+            padding: '12px', borderRadius: '8px', marginBottom: '20px', color: '#ff3b3b', fontSize: '11px' 
+          }}>
+            <AlertTriangle size={14} /> {error}
+          </div>
+        )}
+
         <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '10px', color: 'rgba(255,255,255,0.5)', marginBottom: '8px', textTransform: 'uppercase' }} className="font-mono">
-              <Building size={12} /> Tenant Configuration
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '10px', color: 'rgba(255,255,255,0.5)', marginBottom: '8px', textTransform: 'uppercase' }}>
+              <Building size={12} /> Target Node
             </label>
             <select
               value={tenant}
@@ -78,21 +115,21 @@ export default function Auth({ onLogin }) {
                 fontSize: '12px', outline: 'none'
               }}
             >
-              <option value="GDG_HACKATHON_DEMO">GDG Prototype (Node-01)</option>
-              <option value="GRAND_HYATT_BOM">Grand Hyatt Mumbai</option>
-              <option value="MARRIOTT_NYC">Marriott NYC Core</option>
+              <option value="GDG_HACKATHON_DEMO">GDG Prototype (Mumbai)</option>
+              <option value="GLOBAL_COMMAND">Global Intelligence Core</option>
             </select>
           </div>
 
           <div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '10px', color: 'rgba(255,255,255,0.5)', marginBottom: '8px', textTransform: 'uppercase' }} className="font-mono">
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '10px', color: 'rgba(255,255,255,0.5)', marginBottom: '8px', textTransform: 'uppercase' }}>
               <Lock size={12} /> Operator Credentials
             </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="operator@tenant.com"
+              placeholder="operator@sentinel-x.ai"
+              required
               style={{
                 width: '100%', padding: '12px', background: 'rgba(0,0,0,0.4)',
                 border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff',
@@ -104,7 +141,8 @@ export default function Auth({ onLogin }) {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
+                placeholder="Authorization Code"
+                required
                 style={{
                   width: '100%', padding: '12px', background: 'rgba(0,0,0,0.4)',
                   border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff',
@@ -124,17 +162,21 @@ export default function Auth({ onLogin }) {
               fontSize: '12px', fontWeight: 'bold', letterSpacing: '0.1em', cursor: loading ? 'not-allowed' : 'pointer',
               marginTop: '10px', transition: 'all 0.2s ease', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px'
             }}
-            className="font-mono"
-            onMouseOver={(e) => e.target.style.background = 'rgba(0,210,255,0.25)'}
-            onMouseOut={(e) => e.target.style.background = 'rgba(0,210,255,0.15)'}
           >
-            {loading ? <Server size={16} className="spin" /> : 'ESTABLISH_UPLINK'}
+            {loading ? <Server size={16} className="spin" /> : 'AUTHORIZE_UPLINK'}
           </button>
         </form>
 
+        <div style={{ marginTop: '20px', padding: '10px', background: 'rgba(0,210,255,0.02)', border: '1px dashed rgba(0,210,255,0.2)', borderRadius: '4px' }}>
+          <div style={{ fontSize: '8px', color: 'var(--text-dim)', marginBottom: '5px' }}>DEMO ACCESS:</div>
+          <div style={{ fontSize: '9px', color: '#fff', fontFamily: 'monospace' }}>
+            admin@sentinel.x / tactical-alpha-01
+          </div>
+        </div>
+
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '30px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '20px' }}>
-           <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.3)' }} className="font-mono">DB: SUPABASE_CLOUD</span>
-           <span style={{ fontSize: '9px', color: '#30d158' }} className="font-mono">STATUS: OPERATIONAL</span>
+           <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.3)' }}>SYSTEM: SUPABASE_AUTH</span>
+           <span style={{ fontSize: '9px', color: '#30d158' }}>STATUS: ONLINE</span>
         </div>
       </div>
       

@@ -14,6 +14,7 @@ import ResiliencePrivacy from './components/ResiliencePrivacy';
 import SatelliteMap from './components/SatelliteMap';
 import Auth from './components/Auth';
 import YoloVision from './components/YoloVision';
+import { supabase } from './lib/supabase';
 import {
   generateRooms, generateResponders, generateSensors,
   generateEvent, updateSensorValue, DEMO_SEQUENCE, generateSMSAlert,
@@ -39,6 +40,20 @@ export default function App() {
   const [aiBriefing, setAiBriefing] = useState("");
   const [session, setSession] = useState(null);
   const [smsAlert, setSmsAlert] = useState(null);
+
+  useEffect(() => {
+    // Check initial session
+    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      if (initialSession) setSession(initialSession.user);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session?.user || null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (!session) return;
